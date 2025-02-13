@@ -119,6 +119,7 @@ server {
 - url/servico2 é outra aplicação ou serviço, em outro local, por exemplo.
 
 ### Serviços 1 e 2
+Arquivo services.conf por exemplo.
 ```nginx
 server {
   listen 8001;
@@ -200,3 +201,77 @@ server {
 
 }
 ```
+
+## Logs
+https://nginx.org/en/docs/http/ngx_http_log_module.html
+- `access_log` - todo acesso
+- `error_log` - log apenas dos erros
+- descomenta o log_format
+- o caminho para os logs deve existir (ele não vai criar o diretório) e o usuário do nginx deve ter permissão de escrita (atributo user dentro do nginx.conf).
+
+```nginx
+server {
+  listen 8001;
+  server_name localhost;
+  access_log C:/logs/servico1.log;
+
+  location / {
+    root C:/www/servico1;
+    index index.html;
+  }
+}
+
+server {
+  listen 8002;
+  server_name localhost;
+  access_log C:/logs/servico2.log;
+
+  location / {
+    root C:/www/servico2;
+    index index.html;
+  }
+}
+```
+
+### Log format
+```nginx
+log_format main 'Remote: $remote_addr, Time: $time_local, '
+                'Request: "$request", Status: $status ';
+(...)
+
+access_log C:/logs/servico1.log main;
+```
+
+### IP Real de quem fez a requisição
+O log do servico1 e servico2 ficaria indicaria o IP do load balancer, o que não é bom.
+- usuário acessa o serviço (porta 8003)
+- o load balancer redireciona para o service1 ou service2
+- o IP fica do load balancer e não do usuário
+
+No load-balance.conf (por exemplo) eu adiciono o cabeçalho http. Para cabeçalhos personalizados a especificação sugere incluir **X-** no nome.
+```nginx
+upstream servicos {
+  # ora vai cair num servidor, ora no outro
+  server localhost:8001;
+  server localhost:8002;
+}
+
+server {
+  listen 8003;
+  server_name localhost;
+
+  location / {
+    proxy_pass http://servicos;
+    proxy_set_header X-Real-IP $remote_addr;
+  }
+
+}
+```
+
+E então no log_format eu adiciono o cabeçalho criado. Eu troco o '-' por '_' e posso pegar qualquer cabeçalho.
+```nginx
+log_format main 'Remote: $http_x_real_ip, Time: $time_local, '
+                'Request: "$request", Status: $status ';
+```
+
+Desta forma, o IP real da requisição foi incluído em um cabeçalho próprio, para poder ser recuperado posteriormente.
