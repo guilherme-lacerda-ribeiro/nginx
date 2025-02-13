@@ -165,6 +165,7 @@ location /servico2 {
 ```
 
 ### API Gateway
+[Artigo](https://www.f5.com/company/blog/nginx/deploying-nginx-plus-as-an-api-gateway-part-1)
 - conceito usado nesta implementação, só redireciona
 - ao invés de cada cliente conversar um com o outro livremente, cria-se esse intermediador para facilitar manutenção por exemplo e poder aplicar regras específicas
 - gera uma fachada com url amigável
@@ -175,3 +176,27 @@ location /servico2 {
   - compressão
   - cabeçalhos na ida
   - cabeçalhos na volta
+
+
+## Upstream (load balance)
+Servidor final está recebendo mais requisições do que consegue suportar.
+- localhost:8003 vai mandar para o servico1 ou servico2
+- considera que eles tenham a mesma aplicação, o mesmo código, ao fazer o build manda para os dois servidores.
+- há diversos algoritmos de balanceamento, round robin por exemplo, mas o modo mais rudimentar é este exemplificado.
+```nginx
+upstream servicos {
+  # ora vai cair num servidor, ora no outro
+  server localhost:8001;
+  server localhost:8002;
+}
+
+server {
+  listen 8003;
+  server_name localhost;
+
+  location / {
+    proxy_pass http://servicos;
+  }
+
+}
+```
