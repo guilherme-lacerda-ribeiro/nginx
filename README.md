@@ -163,3 +163,15 @@ location /servico2 {
   proxy_pass http://localhost:8002/;
 }
 ```
+
+### API Gateway
+- conceito usado nesta implementação, só redireciona
+- ao invés de cada cliente conversar um com o outro livremente, cria-se esse intermediador para facilitar manutenção por exemplo e poder aplicar regras específicas
+- gera uma fachada com url amigável
+- atentar porque pode se tornar um ponto central de falha, avaliar HA (high availability)
+- posso redirecionar ou proibir
+- uso do _Decorator_ para adicionar informações ao request ou para remover do response.
+  - cache
+  - compressão
+  - cabeçalhos na ida
+  - cabeçalhos na volta
