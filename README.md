@@ -211,6 +211,13 @@ upstream servicos {
   server localhost:8002 weight=2;
 }
 ```
+```nginx
+upstream servicos {
+  # a cada 3 requisições, 2 irão para o 1 enquanto 1 para o server 2
+  server localhost:8001 weight=2;
+  server localhost:8002;
+}
+```
 
 ### Algoritmos de balanceamento de cargas
 - `round-robin` - roda a lista de servidores disponíveis, em cada momento atribuindo a um
@@ -231,6 +238,41 @@ upstream servicos {
 - as requisições são muito diferentes e demora mais ou menos, least conn atende.
 - não se encaixa, [pesquisar as alternativas](https://nginx.org/en/docs/http/ngx_http_upstream_module.html).
 - round robin é mais rápido do que least conn porque só armazena qual foi o último enviado.
+
+### Diretiva Backup
+Meu servidor principal é o determinado sem diretiva, mas se por acaso ele falhar, o outro assume enquanto o primeiro não voltar. [Doc](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#backup).
+```nginx
+  upstream servicos {
+  server localhost:8001;
+  server localhost:8002 backup;
+}
+```
+
+O NGINX, para saber se está ou não disponível:
+- community: ao recarregar o servidor, ele garante que os servidores existem.
+  - Se a resposta do servidor falhar, o nginx assume que caiu e de tempo em tempo ([configurável](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#max_fails)) ele testa o servidor pra ver se voltou.
+  - `max_fails` padrão é 1 (falhou uma vez, considere que caiu)
+  - `fail_timeout` depois de quanto tempo vai tentar enviar outra requisição
+    ```nginx
+    upstream servicos {
+      # depois de 2 minutos tenta outra requisição
+      server localhost:8001 fail_timeout=120s;
+      server localhost:8002 backup;
+    }
+    ```
+- nginx+ (comercial): diretiva `health_check` verifica automaticamente sem requisição.
+  ```nginx
+  server {
+    listen 8001;
+    server_name localhost;
+
+    location / {
+      root C:/www/servico1;
+      index index.html;
+      health_check; # apenas com licença comercial
+    }
+  }
+  ```
 
 ## Logs
 https://nginx.org/en/docs/http/ngx_http_log_module.html
