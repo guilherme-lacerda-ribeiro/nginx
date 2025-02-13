@@ -212,6 +212,25 @@ upstream servicos {
 }
 ```
 
+### Algoritmos de balanceamento de cargas
+- `round-robin` - roda a lista de servidores disponíveis, em cada momento atribuindo a um
+- `weighted round-robin` - round robin ponderado, conceito weight
+- `least_conn` - Observe: quantidade de requisições que estão chegando e não a quantidade de requisições que estão abertas. Pode acontecer de ter requisições rápidas e outras demoradas. Posso acabar sobrecarregando meu server se fizer apenas um round robin. Ou seja, não é mais requisições mas sim conexões (abertas). [Documentação](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#least_conn).
+  ```nginx
+    upstream servicos {
+    least_conn;
+    server localhost:8001;
+    server localhost:8002;
+  }
+  ```
+- `ip_hash` - o IP sempre será direcionado para um mesmo servidor
+
+**Objetivamente**:
+- as conexões e as capacidades dos servidores são semelhantes, o padrão (round robin) já atende.
+- os servidores tem capacidades diferentes, então weighted round robin.
+- as requisições são muito diferentes e demora mais ou menos, least conn atende.
+- não se encaixa, [pesquisar as alternativas](https://nginx.org/en/docs/http/ngx_http_upstream_module.html).
+- round robin é mais rápido do que least conn porque só armazena qual foi o último enviado.
 
 ## Logs
 https://nginx.org/en/docs/http/ngx_http_log_module.html
