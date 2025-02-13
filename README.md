@@ -202,6 +202,17 @@ server {
 }
 ```
 
+### Pesos (weight)
+Servidores podem ter capacidades de hardware diferentes, para contornar isso pode-se colocar pesos nos servidores. Não informar, assume peso 1.
+```nginx
+upstream servicos {
+  # a cada 7 requisições, 5 irão para o 1 enquanto 2 para o server 2
+  server localhost:8001 weight=5;
+  server localhost:8002 weight=2;
+}
+```
+
+
 ## Logs
 https://nginx.org/en/docs/http/ngx_http_log_module.html
 - `access_log` - todo acesso
