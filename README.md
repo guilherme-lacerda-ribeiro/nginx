@@ -39,7 +39,7 @@ Options:
 ## Comandos
 `nginx -s reload` - recarrega
 
-## Configuração
+## Configuração Inicial
 ### Básico
 - http://localhost/ direciona para index.html
 - http://localhost/teste.html vai procurar o arquivo teste.html em C:/www.
@@ -71,6 +71,7 @@ server {
 }
 ```
 
+## Proxy Reverso
 ### Redirecionando requisições
 - Tudo o que vier na porta 8080 será encaminhado para a porta 80 (padrão web, logo pode ser omitida).
 ```nginx
@@ -110,3 +111,9 @@ server {
   error_page 404 403 401 /erro.html
 }
 ```
+
+## Microserviços
+- Cada aplicação cuida da sua parte (financeira, acadêmica, streaming de vídeos, etc). Organizado por pequenos (micro) serviços. [Curso](https://cursos.alura.com.br/course/microsservicos-padroes-projeto).
+- url é a página estática do site principal institucional, responde rapidamente no próprio nginx
+- url/servico1 é uma aplicação, em um servidor, próprio
+- url/servico2 é outra aplicação ou serviço, em outro local, por exemplo.
