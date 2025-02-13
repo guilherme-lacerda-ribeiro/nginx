@@ -3,6 +3,8 @@ Servidor muito rápido. Se comparado com o Apache inclusive porque o apache cria
 
 https://nginx.org/
 
+Um proxy comum intermedia as conexões de saída da instituição, fica no lado do cliente. O proxy reverso é exatamente o contrário, o que vier da internet é intermediado por ele antes de encaminhar para os servidores internos da instituição.
+
 ## Conceitos
 ### Processos
 - Master process administra os worker process
@@ -68,3 +70,18 @@ server {
   error_page 404 403 401 /erro.html
 }
 ```
+
+### Redirecionando requisições
+- Tudo o que vier na porta 8080 será encaminhado para a porta 80 (padrão web, logo pode ser omitida).
+```nginx
+server {
+  listen 8080;
+  (...)
+
+  location / {
+    #proxy_pass http://localhost:80;
+    proxy_pass http://localhost;
+  }
+}
+```
+
