@@ -85,3 +85,28 @@ server {
 }
 ```
 
+### Nginx + php
+- `php -S localhost:8000` - considerando que tem um servidor php na máquina
+- Neste cenário a ideia é que tudo estático vá para o C:/www e os arquivos que precisam de processamento (php) sejam redirecionados ao servidor de php.
+```nginx
+server {
+  listen 80;
+  server_name localhost;
+
+  location / {
+    root C:/www;
+    index index.html;
+  }
+
+  # ~ case sensitive
+  # ~* case insensitive
+  # \ caracter de escape
+  # tudo que for .php
+  # $ tem que terminal com .php, não pode ser .php.old ou .php.bkp
+  location ~ \.php$ {
+    proxy_pass http://localhost:8000;
+  }
+
+  error_page 404 403 401 /erro.html
+}
+```
