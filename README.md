@@ -117,3 +117,49 @@ server {
 - url é a página estática do site principal institucional, responde rapidamente no próprio nginx
 - url/servico1 é uma aplicação, em um servidor, próprio
 - url/servico2 é outra aplicação ou serviço, em outro local, por exemplo.
+
+### Serviços 1 e 2
+```nginx
+server {
+  listen 8001;
+  server_name localhost;
+
+  location / {
+    root C:/www/servico1;
+    index index.html;
+  }
+}
+
+server {
+  listen 8002;
+  server_name localhost;
+
+  location / {
+    root C:/www/servico2;
+    index index.html;
+  }
+}
+```
+
+### Proxy reverso
+- localhost/servico1 vai pra porta 8001
+- localhost/servico2 vai pra porta 8002
+
+```nginx
+#nginx.conf por exemplo
+(...)
+
+location /servico1 {
+  # / depois da porta : vai mandar só o que receber a partir do /servico1
+  # localhost/servico1/teste vira localhost:8001/teste
+  proxy_pass http://localhost:8001/;
+  
+  # sem a barra ele adiciona o que está no location no final
+  # localhost/servico1/teste vira localhost:8001/servico1/teste
+  # proxy_pass http://localhost:8001;  
+}
+
+location /servico2 {
+  proxy_pass http://localhost:8002/;
+}
+```
