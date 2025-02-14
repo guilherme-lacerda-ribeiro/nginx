@@ -31,6 +31,10 @@ Um proxy comum intermedia as conexões de saída da instituição, fica no lado 
     - [IP Real de quem fez a requisição](#ip-real-de-quem-fez-a-requisição)
   - [Fast-CGI ou servidores auto contidos](#fast-cgi-ou-servidores-auto-contidos)
     - [Configurando](#configurando)
+  - [Cache](#cache)
+    - [Navegador](#navegador)
+    - [Public](#public)
+    - [Private](#private)
 
 
 ## Conceitos
@@ -400,3 +404,52 @@ Desta forma, o IP real da requisição foi incluído em um cabeçalho próprio, 
   ```
 - Recarrega o nginx e `http://localhost:8004/index.php` responde pelo arquivo index.php criado.
 - Se criar outro arquivo `http://localhost:8004/teste.php` onde está sendo executado o docker run vai funcionar. porque foi mapeado na chamada do docker o `$(pwd)`. É possível ser outro diretório, é claro, basta ajustar a chamada do docker run. `docker run --rm -it -p 9000:9000 -v /root/arquivos-php:/caminho/projeto php:fpm`
+
+## Cache
+### Navegador
+Com visão voltada para performance, você indica ao cliente que pode armazenar o dado em cache.
+Isso se dá através dos cabeçalhos http. Em especial o `Cache-Control` e `Expires`.
+Configuramos com a opção expires.
+```nginx
+server {
+  listen 8005;
+  root /var/www/performance/;
+  index index.html;
+
+  location ~ \.jpg$ {
+    # cache-control: max-age=2592000
+    # max-age=2592000: Define que o recurso pode ser armazenado por 30 dias (em segundos: 30 * 24 * 60 * 60).
+    # expires: Sun, 16 Mar 2025 19:41:04 GMT
+    expires 30d;
+  }
+}
+```
+
+### Public
+O cabeçalho Cache-Control: public é uma diretiva do protocolo HTTP que informa que a resposta pode ser armazenada em cache por qualquer intermediário entre o servidor e o cliente final. Isso inclui:
+- Navegadores
+- Proxies reversos
+- CDNs (Content Delivery Networks)
+- Servidores de cache intermediários
+
+Quando um servidor retorna uma resposta com Cache-Control: public, ele permite que qualquer cache intermediário (não apenas o navegador do usuário) armazene e reutilize essa resposta para futuras requisições. Obviamente isso é **desaconselhável para páginas dinamicas (.php, .aspx, .jsp) e para APIs que retornam dados sensíveis**. Deve ser usado então para conteúdos estáticos, como:
+- Imagens (.jpg, .png, .svg)
+- Arquivos CSS e JavaScript (.css, .js)
+- Vídeos e áudios
+- Arquivos de fontes (.woff2, .ttf)
+
+Se um cliente (como um navegador) ou um servidor intermediário armazenar a resposta em cache, outras requisições que pedirem o mesmo recurso poderão ser atendidas sem que o servidor de origem seja acessado novamente, economizando banda, processamento e tempo de resposta.
+
+```nginx
+location ~* \.(jpg|png|gif|css|js|woff2|ttf)$ {
+    expires 30d; # nginx transforma em max-age
+    add_header Cache-Control public;
+    # public: Permite que o recurso seja armazenado por qualquer cache intermediário.
+
+    # Ou, somando os cabeçalhos em uma só informação
+    # add_header Cache-Control "public, max-age=2592000";
+}
+```
+
+### Private
+Para conteúdos personalizados para cada usuário (como dashboards e dados autenticados), use `Cache-Control: private`, que permite que somente o navegador do usuário armazene a resposta.
