@@ -461,3 +461,16 @@ Para conteúdos personalizados para cada usuário (como dashboards e dados auten
 `gzip_types text/css` eu adiciono quais arquivos serão comprimidos. Ressalta-se que esse tipo de compressão funciona melhor com texto. Arquivos binários como imagens não são muito beneficiados. Ideal incluir então os .js, .svg, etc. Isso reduz bastante os dados trafegados na rede.
 
 O arquivo CSS _bootstrap.min.css_ que possui 233kB chegou com 42kB!
+```nginx
+server {
+  listen 8005;
+  root /var/www/performance/;
+  index index.html;
+  gzip on;
+  gzip_types text/css;
+
+  location ~ \.jpg$ {
+    expires 30d;
+  }
+}
+```
