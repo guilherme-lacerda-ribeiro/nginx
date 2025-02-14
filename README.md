@@ -36,6 +36,7 @@ Um proxy comum intermedia as conexões de saída da instituição, fica no lado 
     - [Cache Public](#cache-public)
     - [Cache Private](#cache-private)
     - [Compressão](#compressão)
+    - [Conexões](#conexões)
 
 
 ## Conceitos
@@ -474,3 +475,28 @@ server {
   }
 }
 ```
+
+### Conexões
+`worker_processes` sugere-se um por núcleo (auto faz isso), mas pode tunar e avaliar com cada caso.
+```nginx
+worker_processes auto;
+```
+
+`Connection: keep-alive` cabeçalho http que seta um timeout antes de fechar a conexão. Senão faria uma conexão para cada elemento a ser baixado na aba network do devtools. [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive).
+```nginx
+server {
+  listen 8005;
+  root /var/www/performance/;
+  index index.html;
+  gzip on;
+  gzip_types image/jpeg text/css;
+  
+  # se dentro de 5s tentar fazer uma requisição essa conexão vai ser aproveitada
+  add_header Keep-Alive "timeout=5, max=200";
+
+  location ~ \.jpg$ {
+    expires 30d;
+  }
+}
+```
+No devtools: `keep-alive: timeout=5, max=200`.
