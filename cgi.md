@@ -1,0 +1,2 @@
+# CGI
+Páginas estáticas (html) retornavam sem processamento. Nas demais a requisição chegava, criava-se o processo, ele fazia as consultas aos discos (por exemplo), retornava o processamento que era necessário e devolvia, matando o processo. Ficava lento.

@@ -347,3 +347,10 @@ log_format main 'Remote: $http_x_real_ip, Time: $time_local, '
 ```
 
 Desta forma, o IP real da requisição foi incluído em um cabeçalho próprio, para poder ser recuperado posteriormente.
+
+## Fast-CGI ou servidores auto contidos
+- `cgi`: Páginas estáticas (html) retornavam sem processamento. Nas demais a requisição chegava, criava-se o processo, ele fazia as consultas aos discos (por exemplo), retornava o processamento que era necessário e devolvia, matando o processo. Ficava lento.
+- `fast-cgi`: Não precisa criar um processo por requisição. O gerenciador de fastcgi comunica com o fastcgi e solicita e recebe as demandas. É uma forma de se comunicar, não é específico de linguagem.
+  - Cenários mais comuns, algumas requisições por segundo, queries mais simples, a adoção do fast-cgi é recomendada. O PHP por exemplo usa por padrão o PHP-FPM (PHP Fastcgi Process Manager).
+  - A vantagem é que após a resposta da requisição, o processo que foi executado é limpo: conexões com o banco de dados automaticamente fechadas, recursos liberados, arquivos abertos são fechados. Não precisa de pool de conexões com o banco por exemplo, etc. O fastCGI está cuidando disso tudo.
+- `Auto-contido`: Cenários complexos (1 milhão de requisições por segundo, queries complicadas e demoradas, muitos arquivos, etc), use o servidor auto-contido, que é a implementação de cada linguagem para o processamento da requisição, o servidor escrito para aquela linguagem. Usa o proxy reverso e excelente. Toda linguagem interpretada possui algum servidor neste sentido. Qualquer linguagem que permita a abertura de um socket consegue, basta que alguém desenvolva o servidor.
