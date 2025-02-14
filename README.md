@@ -354,3 +354,21 @@ Desta forma, o IP real da requisição foi incluído em um cabeçalho próprio, 
   - Cenários mais comuns, algumas requisições por segundo, queries mais simples, a adoção do fast-cgi é recomendada. O PHP por exemplo usa por padrão o PHP-FPM (PHP Fastcgi Process Manager).
   - A vantagem é que após a resposta da requisição, o processo que foi executado é limpo: conexões com o banco de dados automaticamente fechadas, recursos liberados, arquivos abertos são fechados. Não precisa de pool de conexões com o banco por exemplo, etc. O fastCGI está cuidando disso tudo.
 - `Auto-contido`: Cenários complexos (1 milhão de requisições por segundo, queries complicadas e demoradas, muitos arquivos, etc), use o servidor auto-contido, que é a implementação de cada linguagem para o processamento da requisição, o servidor escrito para aquela linguagem. Usa o proxy reverso e excelente. Toda linguagem interpretada possui algum servidor neste sentido. Qualquer linguagem que permita a abertura de um socket consegue, basta que alguém desenvolva o servidor.
+
+### Testando
+- Criar um arquivo index.php num diretório.
+- Rodar `docker run --rm -it -p 9000:9000 -v $(pwd):/caminho/projeto php:fpm` dentro deste diretório.
+- Configurar o fastcgi_pass.
+  ```nginx
+  server {
+    listen 8004;
+    root /caminho/projeto;
+
+      location / {
+        include fastcgi.conf;
+        fastcgi_pass localhost:9000;
+    }
+  }
+  ```
+- Recarrega o nginx e `http://localhost:8004/index.php` responde pelo arquivo index.php criado.
+- Se criar outro arquivo `http://localhost:8004/teste.php` onde está sendo executado o docker run vai funcionar. porque foi mapeado na chamada do docker o `$(pwd)`. É possível ser outro diretório, é claro, basta ajustar a chamada do docker run. `docker run --rm -it -p 9000:9000 -v /root/arquivos-php:/caminho/projeto php:fpm`
