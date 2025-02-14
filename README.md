@@ -5,6 +5,34 @@ https://nginx.org/
 
 Um proxy comum intermedia as conexões de saída da instituição, fica no lado do cliente. O proxy reverso é exatamente o contrário, o que vier da internet é intermediado por ele antes de encaminhar para os servidores internos da instituição.
 
+## Conteúdo
+- [NGINX](#nginx)
+  - [Conteúdo](#conteúdo)
+  - [Conceitos](#conceitos)
+    - [Processos](#processos)
+    - [Diretórios](#diretórios)
+  - [Comandos](#comandos)
+  - [Configuração Inicial](#configuração-inicial)
+    - [Básico](#básico)
+    - [Erros](#erros)
+  - [Proxy Reverso](#proxy-reverso)
+    - [Redirecionando requisições](#redirecionando-requisições)
+    - [Nginx + php](#nginx--php)
+  - [Microserviços](#microserviços)
+    - [Serviços 1 e 2](#serviços-1-e-2)
+    - [Proxy reverso](#proxy-reverso-1)
+    - [API Gateway](#api-gateway)
+  - [Upstream (load balance)](#upstream-load-balance)
+    - [Pesos (weight)](#pesos-weight)
+    - [Algoritmos de balanceamento de cargas](#algoritmos-de-balanceamento-de-cargas)
+    - [Diretiva Backup](#diretiva-backup)
+  - [Logs](#logs)
+    - [Log format](#log-format)
+    - [IP Real de quem fez a requisição](#ip-real-de-quem-fez-a-requisição)
+  - [Fast-CGI ou servidores auto contidos](#fast-cgi-ou-servidores-auto-contidos)
+    - [Configurando](#configurando)
+
+
 ## Conceitos
 ### Processos
 - Master process administra os worker process
@@ -355,7 +383,7 @@ Desta forma, o IP real da requisição foi incluído em um cabeçalho próprio, 
   - A vantagem é que após a resposta da requisição, o processo que foi executado é limpo: conexões com o banco de dados automaticamente fechadas, recursos liberados, arquivos abertos são fechados. Não precisa de pool de conexões com o banco por exemplo, etc. O fastCGI está cuidando disso tudo.
 - `Auto-contido`: Cenários complexos (1 milhão de requisições por segundo, queries complicadas e demoradas, muitos arquivos, etc), use o servidor auto-contido, que é a implementação de cada linguagem para o processamento da requisição, o servidor escrito para aquela linguagem. Usa o proxy reverso e excelente. Toda linguagem interpretada possui algum servidor neste sentido. Qualquer linguagem que permita a abertura de um socket consegue, basta que alguém desenvolva o servidor.
 
-### Testando
+### Configurando
 - Criar um arquivo index.php num diretório.
 - Rodar `docker run --rm -it -p 9000:9000 -v $(pwd):/caminho/projeto php:fpm` dentro deste diretório.
 - Configurar o fastcgi_pass.
