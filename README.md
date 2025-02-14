@@ -31,10 +31,11 @@ Um proxy comum intermedia as conexões de saída da instituição, fica no lado 
     - [IP Real de quem fez a requisição](#ip-real-de-quem-fez-a-requisição)
   - [Fast-CGI ou servidores auto contidos](#fast-cgi-ou-servidores-auto-contidos)
     - [Configurando](#configurando)
-  - [Cache](#cache)
-    - [Navegador](#navegador)
-    - [Public](#public)
-    - [Private](#private)
+  - [Performance](#performance)
+    - [Cache Navegador](#cache-navegador)
+    - [Cache Public](#cache-public)
+    - [Cache Private](#cache-private)
+    - [Compressão](#compressão)
 
 
 ## Conceitos
@@ -405,8 +406,8 @@ Desta forma, o IP real da requisição foi incluído em um cabeçalho próprio, 
 - Recarrega o nginx e `http://localhost:8004/index.php` responde pelo arquivo index.php criado.
 - Se criar outro arquivo `http://localhost:8004/teste.php` onde está sendo executado o docker run vai funcionar. porque foi mapeado na chamada do docker o `$(pwd)`. É possível ser outro diretório, é claro, basta ajustar a chamada do docker run. `docker run --rm -it -p 9000:9000 -v /root/arquivos-php:/caminho/projeto php:fpm`
 
-## Cache
-### Navegador
+## Performance
+### Cache Navegador
 Com visão voltada para performance, você indica ao cliente que pode armazenar o dado em cache.
 Isso se dá através dos cabeçalhos http. Em especial o `Cache-Control` e `Expires`.
 Configuramos com a opção expires.
@@ -425,7 +426,7 @@ server {
 }
 ```
 
-### Public
+### Cache Public
 O cabeçalho Cache-Control: public é uma diretiva do protocolo HTTP que informa que a resposta pode ser armazenada em cache por qualquer intermediário entre o servidor e o cliente final. Isso inclui:
 - Navegadores
 - Proxies reversos
@@ -451,5 +452,12 @@ location ~* \.(jpg|png|gif|css|js|woff2|ttf)$ {
 }
 ```
 
-### Private
+### Cache Private
 Para conteúdos personalizados para cada usuário (como dashboards e dados autenticados), use `Cache-Control: private`, que permite que somente o navegador do usuário armazene a resposta.
+
+### Compressão
+`gzip on` por padrão comprime apenas o html. Cabeçalho `Content-Encoding: gzip` é adicionado.
+
+`gzip_types text/css` eu adiciono quais arquivos serão comprimidos. Ressalta-se que esse tipo de compressão funciona melhor com texto. Arquivos binários como imagens não são muito beneficiados. Ideal incluir então os .js, .svg, etc. Isso reduz bastante os dados trafegados na rede.
+
+O arquivo CSS _bootstrap.min.css_ que possui 233kB chegou com 42kB!
