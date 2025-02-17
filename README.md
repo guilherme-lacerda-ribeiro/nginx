@@ -40,6 +40,7 @@ Um proxy comum intermedia as conexões de saída da instituição, fica no lado 
     - [Cache Private](#cache-private)
     - [Servidor de Cache](#servidor-de-cache)
     - [Debug, visualizar estados do cache](#debug-visualizar-estados-do-cache)
+  - [HTTPS](#https)
 
 
 ## Conceitos
@@ -578,3 +579,19 @@ server {
   }
 }
 ```
+
+## HTTPS
+HTTP trafega request e reponse na rede em texto puro (veja no network devtools), HTTPS trafega criptografado.
+- Válido: [Let's Encrypt - Autoridade Certificadora Gratuita](https://letsencrypt.org/pt-br/).
+- Inválido (auto assinado): `openssl req -x509 -nodes -days 30 -newkey rsa:2048 -keyout /tmp/localhost.key -out /tmp/localhost.crt`
+  - Informo no nível do sistema operacional que aceite este certificado. [Referência](https://sadique.io/blog/2012/06/05/managing-security-certificates-from-the-console-on-windows-mac-os-x-and-linux/). Após, reiniciar os navegadores.
+- Configurar o NGINX (servers que receberão a conexão via ssl).
+  ```nginx
+  server {
+    listen 443 ssl;
+    server_name localhost;
+    ssl_certificate /etc/ssl/autoassinado/localhost.crt;
+    ssl_certificate_key /etc/ssl/autoassinado/localhost.key;
+  }
+  ```
+  Se o certificado for auto assinado haverá uma mensagem do navegador de que não é seguro.
