@@ -572,7 +572,7 @@ server {
     add_header X-Cache-Status $upstream_cache_status;
 
     fastcgi_cache fpm;
-    fastcgi_cache_key $request_method$$request_uri;
+    fastcgi_cache_key $request_method$request_uri;
     fastcgi_cache_valid 5m;
     fastcgi_pass localhost:9000;
   }
