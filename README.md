@@ -32,11 +32,14 @@ Um proxy comum intermedia as conexões de saída da instituição, fica no lado 
   - [Fast-CGI ou servidores auto contidos](#fast-cgi-ou-servidores-auto-contidos)
     - [Configurando](#configurando)
   - [Performance](#performance)
+    - [Compressão](#compressão)
+    - [Conexões](#conexões)
+  - [Cache](#cache)
     - [Cache Navegador](#cache-navegador)
     - [Cache Public](#cache-public)
     - [Cache Private](#cache-private)
-    - [Compressão](#compressão)
-    - [Conexões](#conexões)
+    - [Seridor de Cache](#seridor-de-cache)
+    - [Debug, visualizar estados do cache](#debug-visualizar-estados-do-cache)
 
 
 ## Conceitos
@@ -408,6 +411,52 @@ Desta forma, o IP real da requisição foi incluído em um cabeçalho próprio, 
 - Se criar outro arquivo `http://localhost:8004/teste.php` onde está sendo executado o docker run vai funcionar. porque foi mapeado na chamada do docker o `$(pwd)`. É possível ser outro diretório, é claro, basta ajustar a chamada do docker run. `docker run --rm -it -p 9000:9000 -v /root/arquivos-php:/caminho/projeto php:fpm`
 
 ## Performance
+### Compressão
+`gzip on` por padrão comprime apenas o html. Cabeçalho `Content-Encoding: gzip` é adicionado.
+
+`gzip_types text/css` eu adiciono quais arquivos serão comprimidos. Ressalta-se que esse tipo de compressão funciona melhor com texto. Arquivos binários como imagens não são muito beneficiados. Ideal incluir então os .js, .svg, etc. Isso reduz bastante os dados trafegados na rede.
+
+O arquivo CSS _bootstrap.min.css_ que possui 233kB chegou com 42kB!
+```nginx
+server {
+  listen 8005;
+  root /var/www/performance/;
+  index index.html;
+  gzip on;
+  gzip_types text/css;
+
+  location ~ \.jpg$ {
+    expires 30d;
+  }
+}
+```
+
+### Conexões
+`worker_processes` sugere-se um por núcleo (auto faz isso), mas pode tunar e avaliar com cada caso.
+```nginx
+worker_processes auto;
+```
+
+`Connection: keep-alive` cabeçalho http que seta um timeout antes de fechar a conexão. Senão faria uma conexão para cada elemento a ser baixado na aba network do devtools. [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive).
+```nginx
+server {
+  listen 8005;
+  root /var/www/performance/;
+  index index.html;
+  gzip on;
+  gzip_types image/jpeg text/css;
+  
+  # se dentro de 5s tentar fazer uma requisição essa conexão vai ser aproveitada
+  add_header Keep-Alive "timeout=5, max=200";
+
+  location ~ \.jpg$ {
+    expires 30d;
+  }
+}
+```
+No devtools: `keep-alive: timeout=5, max=200`.
+
+## Cache
 ### Cache Navegador
 Com visão voltada para performance, você indica ao cliente que pode armazenar o dado em cache.
 Isso se dá através dos cabeçalhos http. Em especial o `Cache-Control` e `Expires`.
@@ -456,47 +505,76 @@ location ~* \.(jpg|png|gif|css|js|woff2|ttf)$ {
 ### Cache Private
 Para conteúdos personalizados para cada usuário (como dashboards e dados autenticados), use `Cache-Control: private`, que permite que somente o navegador do usuário armazene a resposta.
 
-### Compressão
-`gzip on` por padrão comprime apenas o html. Cabeçalho `Content-Encoding: gzip` é adicionado.
+### Seridor de Cache
+Em URLs que precisam de processamento e não mudam de usuário para usuário pode-se colocar a diretiva de cache para armazenamento dos dados, páginas. Crio o cache o posso usar em vários servers e locations diferentes. Transforma o nginx em um servidor de cache.
+- `fastcgi_cache_path` para processamento fastcgi como o php-fpm https://nginx.org/en/docs/http/ngx_http_fastcgi_module.html#fastcgi_cache_path.
+  ```nginx
+  # fica na diretiva http e não do server, logo, pode ficar aqui onde está ou no nginx.conf ou outro include
+  # levels 1:2 melhor performance do que ficarem todos os arquivos de cache em um só nível de diretórios
+  # neste caso o key 'meu_nome_qualquer' teria o tamanho de 10 mega.
+  fastcgi_cache_path /tmp/cache levels=1:2 keys_zone=meu_nome_qualquer:10m;
 
-`gzip_types text/css` eu adiciono quais arquivos serão comprimidos. Ressalta-se que esse tipo de compressão funciona melhor com texto. Arquivos binários como imagens não são muito beneficiados. Ideal incluir então os .js, .svg, etc. Isso reduz bastante os dados trafegados na rede.
+  server {
+    listen 8004;
+    root /caminho/projeto;
 
-O arquivo CSS _bootstrap.min.css_ que possui 233kB chegou com 42kB!
+    location / {
+      include fastcgi.conf;
+      fastcgi_pass localhost:9000;
+    }
+  }
+  ```
+- No location que precisar eu incluo o `fastcgi_cache`, `fastcgi_cache_key` e [`fastcgi_cache_valid`](https://nginx.org/en/docs/http/ngx_http_fastcgi_module.html#fastcgi_cache_valid). Desta forma, _"sempre que alguém acessar meu index, que é um conteúdo que precisa de computação, então ele merece ser cacheado, só que ele não precisa ser cacheado só pelo navegador, pode ser cacheado direto no servidor, eu consigo, ou seja, todos os usuários que acessarem isso não vão precisar esperar o processamento daquelas informações."_
+  ```nginx
+  fastcgi_cache_path /tmp/cache levels=1:2 keys_zone=fpm:10m;
+
+  server {
+    listen 8004;
+    root /caminho/projeto;
+
+    location / {
+      include fastcgi.conf;
+      # zone name
+      fastcgi_cache fpm;
+
+      # qual a chave do cache (quais informações precisam bater para chegar neste cache)
+      # pode ser o mesmo URI, método HTTP, ou só o mesmo URI, etc.
+      fastcgi_cache_key $request_method$$request_uri;
+
+      # no proxy_cache já tem um padrão de quais códigos http serão "cacheados" e por quanto tempo
+      # no fast_cgi precisa informar
+      fastcgi_cache_valid 5m; # http status 200, 301, 302
+
+      fastcgi_pass localhost:9000;
+    }
+  }
+  ```
+- `proxy_cache_path` para processamento proxy_pass https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_path.
+  ```nginx
+  proxy_cache_path /tmp/cache levels=1:2 keys_zone=meu_nome_qualquer:1m;
+  ```
+
+Na versão paga do NGINX, pode-se remover o cache a partir de uma requisição http. Sempre que o arquivo for modificado na origem, ele vem no servidor de cache e remove o cache.
+
+### Debug, visualizar estados do cache
+Para debugar, adicionar no cabeçalho http o status do cache. Os valores são **HIT** (válido), **EXPIRED** (expirado) ou **MISS** (se apagar o conteúdo o _tmp/cache_).
 ```nginx
-server {
-  listen 8005;
-  root /var/www/performance/;
-  index index.html;
-  gzip on;
-  gzip_types text/css;
+fastcgi_cache_path /tmp/cache levels=1:2 keys_zone=fpm:10m;
 
-  location ~ \.jpg$ {
-    expires 30d;
+server {
+  listen 8004;
+  root /caminho/projeto;
+
+  location / {
+    include fastcgi.conf;
+    
+    # Criando cabeçalho personalizado, iniciando com X (não faz parte do padrão http)
+    add_header X-Cache-Status $upstream_cache_status;
+
+    fastcgi_cache fpm;
+    fastcgi_cache_key $request_method$$request_uri;
+    fastcgi_cache_valid 5m;
+    fastcgi_pass localhost:9000;
   }
 }
 ```
-
-### Conexões
-`worker_processes` sugere-se um por núcleo (auto faz isso), mas pode tunar e avaliar com cada caso.
-```nginx
-worker_processes auto;
-```
-
-`Connection: keep-alive` cabeçalho http que seta um timeout antes de fechar a conexão. Senão faria uma conexão para cada elemento a ser baixado na aba network do devtools. [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive).
-```nginx
-server {
-  listen 8005;
-  root /var/www/performance/;
-  index index.html;
-  gzip on;
-  gzip_types image/jpeg text/css;
-  
-  # se dentro de 5s tentar fazer uma requisição essa conexão vai ser aproveitada
-  add_header Keep-Alive "timeout=5, max=200";
-
-  location ~ \.jpg$ {
-    expires 30d;
-  }
-}
-```
-No devtools: `keep-alive: timeout=5, max=200`.
