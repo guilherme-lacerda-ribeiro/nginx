@@ -539,7 +539,7 @@ Em URLs que precisam de processamento e não mudam de usuário para usuário pod
 
       # qual a chave do cache (quais informações precisam bater para chegar neste cache)
       # pode ser o mesmo URI, método HTTP, ou só o mesmo URI, etc.
-      fastcgi_cache_key $request_method$$request_uri;
+      fastcgi_cache_key $request_method$request_uri;
 
       # no proxy_cache já tem um padrão de quais códigos http serão "cacheados" e por quanto tempo
       # no fast_cgi precisa informar
