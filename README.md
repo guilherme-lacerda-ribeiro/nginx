@@ -38,7 +38,7 @@ Um proxy comum intermedia as conexões de saída da instituição, fica no lado 
     - [Cache Navegador](#cache-navegador)
     - [Cache Public](#cache-public)
     - [Cache Private](#cache-private)
-    - [Seridor de Cache](#seridor-de-cache)
+    - [Servidor de Cache](#servidor-de-cache)
     - [Debug, visualizar estados do cache](#debug-visualizar-estados-do-cache)
 
 
@@ -505,7 +505,7 @@ location ~* \.(jpg|png|gif|css|js|woff2|ttf)$ {
 ### Cache Private
 Para conteúdos personalizados para cada usuário (como dashboards e dados autenticados), use `Cache-Control: private`, que permite que somente o navegador do usuário armazene a resposta.
 
-### Seridor de Cache
+### Servidor de Cache
 Em URLs que precisam de processamento e não mudam de usuário para usuário pode-se colocar a diretiva de cache para armazenamento dos dados, páginas. Crio o cache o posso usar em vários servers e locations diferentes. Transforma o nginx em um servidor de cache.
 - `fastcgi_cache_path` para processamento fastcgi como o php-fpm https://nginx.org/en/docs/http/ngx_http_fastcgi_module.html#fastcgi_cache_path.
   ```nginx
